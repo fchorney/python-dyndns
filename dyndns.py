@@ -123,7 +123,7 @@ def parse_config(filepath):
             config_dict[section][name] = value
 
     # Make sure api key is correct
-    if not re.match('[0-9a-zA-Z]{40}', config_dict['authentication']['api_key']):
+    if not re.match('[0-9a-fA-F]{40}', config_dict['authentication']['api_key']):
         print >> stderr, "Malformed API Key. Must be 40 hex character SHA1 Hash"
         exit(1)
 

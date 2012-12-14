@@ -90,12 +90,12 @@ Follow the instructions above under the "api_key" section and put your
 
 Run dyndns.py in configuration mode:
 
-    $1: python dyndns.py --configure example.cfg
-    $2: Retreiving records from https://freedns.afraid.org/api/?action=getdyndns&sha=API_KEY_HERE&style=xml
-    $3: Found 2 records
-    $4: Delete all records (y/n): y
-    $5: Save hosta.com to config file (y/n): y
-    $6: Save hostb.com to config file (y/n): n
+    python dyndns.py --configure example.cfg
+    Retreiving records from https://freedns.afraid.org/api/?action=getdyndns&sha=API_KEY_HERE&style=xml
+    Found 2 records
+    Delete all records (y/n): y
+    Save hosta.com to config file (y/n): y
+    Save hostb.com to config file (y/n): n
 
 If your configuration file already has records saved to it, dyndns will ask if you want to delete all currently saved records.
 Usually you will want to do this if you have removed any records from the website, or just as a clean up.

@@ -42,6 +42,12 @@ def update_records(args, config):
     path = 'https://freedns.afraid.org/dynamic/update.php?%s&address=%s'
     cached_ip = config['cache']['ip']
 
+    records = get_records(args, config)
+    record_dict = {}
+    for record in records:
+        record_dict[record['host']] = record['address']
+
+
     if 'records' in config.keys():
         ip = get_current_ip(args, config)
         if ip is not None and ip != cached_ip:
@@ -49,9 +55,12 @@ def update_records(args, config):
             config['cache']['ip'] = ip
 
         for record in config['records']:
-            value = config['records'][record]
-            url = path % (value, ip)
-            print >> stdout, "Attempting to update %s: %s" % (record, url)
+            if record in record_dict:
+                if record_dict[record] == ip:
+                    print >> stdout, "\nHost %s does not need to be updated" % record
+                    continue
+            url = path % (record, ip)
+            print >> stdout, "\nAttempting to update %s: %s" % (record, url)
 
             result = urlopen(url)
             line = result.read().strip()
@@ -60,9 +69,40 @@ def update_records(args, config):
             else:
                 print >> stdout, line
 
+
+def configure_config_file(args, config):
+    records = get_records(args, config)
+
+    print >> stdout, "Found %s records" % len(records)
+
+    if len(config['records'].keys()) > 0:
+        del_curr = None
+        while del_curr is None:
+            del_curr = raw_input("Delete all records (y/n): ").lower()[0]
+            if del_curr != 'y' and del_curr != 'n':
+                del_curr = None
+        if del_curr == 'y':
+            for key in config['records'].keys():
+                del(config['records'][key])
+
+    for record in records:
+        host = record['host']
+        url = record['url']
+        confirm = None
+        while confirm is None:
+            confirm = raw_input("Save %s to config file (y/n): " % host).lower()[0]
+            if confirm != 'y' and confirm != 'n':
+                confirm = None
+        if confirm == 'y':
+             config['records'][host] = re.sub(r"^.*update.php\?([0-9A-Za-z=]*)$", r'\1', url)
+
+
 def main():
     args = parse_args()
     config = parse_config(args.config_file)
+
+    if args.configure:
+        configure_config_file(args, config)
 
     if args.current_ip:
         ip = get_current_ip(args, config)
@@ -80,7 +120,7 @@ def main():
             print >> stdout, "Record For: %s\nIP Address: %s\nURL: %s\n" % (item['host'],
                      item['address'], item['url'])
 
-    if not args.current_ip and not args.get_records:
+    if not (args.current_ip or args.get_records or args.configure):
         update_records(args, config)
 
     write_config_file(args, config)

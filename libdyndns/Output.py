@@ -9,7 +9,7 @@ LEVELS = {
 
 def error(msg):
     """Print msg to stderr"""
-    print >> stderr, msg
+    print >> stderr, 'Error: %s' % msg
 
 def exit(return_code, msg):
     """Print msg to stderr and exit with return_code"""

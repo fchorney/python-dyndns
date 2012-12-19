@@ -8,12 +8,26 @@ class Config:
         self.ip = ''
         self.records = {}
 
-def parse_config(args, filepath):
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        string = "Configuration:\nAPI Key: %s\nCached IP: %s\nRecords:\n"
+        string = string % (self.api_key, self.ip)
+        for key in self.records.keys():
+            host = key
+            value = self.records[host]
+            string += "%s: %s\n" % (host, value)
+        return string
+
+
+def parse_config(filepath, verbosity=0):
     """ Parse Configuration File """
     import ConfigParser
+    v = verbosity
 
     # Assume filepath is good, since it is already checked
-    info(args['v'], 'Importing Configuration File: %s' % filepath)
+    info(v, 'Importing Configuration File: %s' % filepath)
     config = ConfigParser.SafeConfigParser(allow_no_value=True)
     try:
         config.readfp(open(filepath, 'r'))
@@ -22,11 +36,9 @@ def parse_config(args, filepath):
 
     # Error Check
     if not config.has_section('authentication'):
-        err = "Malformed Config File. Missing 'authentication' section"
-        exit(1, err)
+        exit(1, "Malformed Config File. Missing 'authentication' section")
     if not config.has_option('authentication', 'api_key'):
-        err = "Malformed Config File. Missing 'api_key' option"
-        exit(1, err)
+        exit(1, "Malformed Config File. Missing 'api_key' option")
 
     # Create a dictionary of config values
     config_dict = {}
@@ -34,6 +46,8 @@ def parse_config(args, filepath):
         config_dict[section] = {}
         for name, value in config.items(section):
             config_dict[section][name] = value
+            debug(v, "Section: %s\nName: %s\nValue: %s" % (section, name,
+                value))
 
     # Transform dict into Config Object
     config_obj = Config()
@@ -47,12 +61,9 @@ def parse_config(args, filepath):
             config_obj.records[host] = value
 
     # Make sure api key is correct
-    from re import match
-    api_key_re = '[0-9a-fA-F]{40}'
-    api_key = config_obj.api_key
-    match = match(api_key_re, api_key)
-    if not match:
+    from re import match as re_match
+    if not re_match('[0-9a-fA-F]{40}', config_obj.api_key):
         exit(1, 'Malformed API Key. Must be 40 hex character SHA1 Hash')
 
-    info(args['v'], 'Successfully Imported Configuration File: %s' % filepath)
+    info(v, 'Successfully Imported Configuration File: %s' % filepath)
     return config_obj

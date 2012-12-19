@@ -11,7 +11,7 @@ def error(msg):
     """Print msg to stderr"""
     print >> stderr, msg
 
-def exit(return_code=0, msg=''):
+def exit(return_code, msg):
     """Print msg to stderr and exit with return_code"""
     error(msg)
     sysexit(return_code)

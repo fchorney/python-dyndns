@@ -3,17 +3,16 @@
 from Output import info, debug, error
 
 def get_current_ip(verbosity=0):
-    path = "http://checkip.dyndns.org"
     v = verbosity
-
-    info(v, "Retreiving current external ip from %s" % path)
+    url = "http://checkip.dyndns.org"
+    info(v, "Retreiving current external ip from %s" % url)
 
     # Open URL
     try:
         from urllib2 import urlopen
-        html_result = urlopen(path)
+        html_result = urlopen(url)
     except Exception, e:
-        error(e)
+        error("Url(%s) - %s" % (url, e))
         return None
 
     # Read result
@@ -31,28 +30,42 @@ def get_current_ip(verbosity=0):
     return ip
 
 
+def get_records(api_key, verbosity=0):
+    v = verbosity
+    url = "https://freedns.afraid.org/api/?action=getdyndns&sha=%s&style=xml"
+    url = url % api_key
+    info(v, "Retreiving records from %s" % url)
 
-noobs = """
-import re
+    # Open URL
+    try:
+        from urllib2 import urlopen
+        html_result = urlopen(url)
+    except Exception, e:
+        error("url(%s) - %s" % (url, e))
+        return None
 
-from sys import exit, stderr, stdout
-from urllib2 import urlopen
-import xml.etree.cElementTree as et
+    # Read result
+    raw_xml = html_result.read().strip()
+    debug(v, "Full XML Result: %s" % raw_xml)
 
-def get_records(args, config):
-    path = 'https://freedns.afraid.org/api/?action=getdyndns&sha=%s&style=xml'
-    url = path % config['authentication']['api_key']
-    print >> stdout, "Retreiving records from %s" % url
+    # Check for authentication error
+    if raw_xml == 'ERROR: Could not authenticate.':
+        error("Could Not Authenticate")
+        return None
 
-    result = urlopen(url)
-    raw_xml = result.read()
+    # Parse XML
+    import xml.etree.cElementTree as et
+    try:
+        xml = et.fromstring(raw_xml)
+    except Exception, e:
+        error("XML Parsing Error - %s\nRaw XML: %s" % (e, raw_xml))
+        return None
 
-    tree = et.fromstring(raw_xml)
-    items = [{item.tag: item.text for item in ch} for ch in tree.findall('item')]
+    # Parse xml object into array of dicts
+    all_items = xml.findall('item')
+    records = [{y.tag: y.text for y in x} for x in all_items]
 
-    records = []
-    for item in items:
-        records.append(item)
+    debug(v, "Retreived Records: %s" % records)
 
+    # Return records if they exist, else return none
     return records if records != [] else None
-"""

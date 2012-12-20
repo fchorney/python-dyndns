@@ -30,6 +30,39 @@ def get_current_ip(verbosity=0):
     return ip
 
 
+
+class Record:
+    def __init__(self, record_dict=None):
+        self.host = ''
+        self.address = ''
+        self.url = ''
+
+        if record_dict is not None:
+            self.initialize(record_dict)
+
+    def updateKey(self):
+        key = ''
+        if self.url != '':
+            # Use regex to extract update_key
+            from re import sub as re_sub
+            regex = r"^.*update.php\?([0-9A-Za-z=]*)$"
+            key = re_sub(regex, r'\1', self.url)
+
+        return key
+
+    def initialize(self, record_dict):
+        self.host = record_dict['host']
+        self.address = record_dict['address']
+        self.url = record_dict['url']
+
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        args = (self.host, self.address, self.url, self.updateKey())
+        return "-Record-\nHost: %s\nAddr: %s\nUrl: %s\nUpdate Key: %s\n" % args
+
 def get_records(api_key, verbosity=0):
     v = verbosity
     url = "https://freedns.afraid.org/api/?action=getdyndns&sha=%s&style=xml"
@@ -63,7 +96,8 @@ def get_records(api_key, verbosity=0):
 
     # Parse xml object into array of dicts
     all_items = xml.findall('item')
-    records = [{y.tag: y.text for y in x} for x in all_items]
+    records = [Record(z) for z in [
+              {y.tag: y.text for y in x} for x in all_items]]
 
     debug(v, "Retreived Records: %s" % records)
 

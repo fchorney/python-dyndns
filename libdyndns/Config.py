@@ -15,7 +15,7 @@ class Config:
         return self.__repr__()
 
     def __repr__(self):
-        string = "Configuration:\nAPI Key: %s\nCached IP: %s\nRecords:\n"
+        string = "-Configuration-\nAPI Key: %s\nCached IP: %s\nRecords:\n"
         string = string % (self.api_key, self.ip)
         for key in self.records.keys():
             host = key

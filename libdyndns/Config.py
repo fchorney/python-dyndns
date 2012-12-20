@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from Output import exit, message, info, debug
+from Output import exit, message, info, debug, extra
 
 class Config:
     def __init__(self, filepath, verbosity=0):
@@ -24,12 +24,16 @@ class Config:
         return string
 
     def save(self):
-        with open(self.filepath, 'w') as f:
-            f.write("[authentication]\napi_key=%s\n\n" % self.api_key)
-            f.write("[cache]\nip=%s\n\n" % self.ip)
-            f.write("[records]\n")
-            for key in self.records.keys():
-                f.write("%s=%s\n" % (key, self.records[key]))
+        info(self.v, 'Saving Config File (%s)' % self.filepath)
+        try:
+            with open(self.filepath, 'w') as f:
+                f.write("[authentication]\napi_key=%s\n\n" % self.api_key)
+                f.write("[cache]\nip=%s\n\n" % self.ip)
+                f.write("[records]\n")
+                for key in self.records.keys():
+                    f.write("%s=%s\n" % (key, self.records[key]))
+        except Exception, e:
+            error("Could Not Save Config File (%s) - %s" % (self.filepath, e))
 
     def initialize(self):
         """ Parse Configuration File """
@@ -54,7 +58,7 @@ class Config:
             config_dict[section] = {}
             for name, value in config.items(section):
                 config_dict[section][name] = value
-                debug(self.v, "Section: %s\nName: %s\nValue: %s" % (section,
+                extra(self.v, "Section: %s\nName: %s\nValue: %s" % (section,
                                                                     name,
                                                                     value))
 
@@ -72,5 +76,3 @@ class Config:
         from re import match as re_match
         if not re_match('[0-9a-fA-F]{40}', self.api_key):
             exit(1, 'Malformed API Key. Must be 40 hex character SHA1 Hash')
-
-        info(self.v, 'Successfully Imported Configuration File')

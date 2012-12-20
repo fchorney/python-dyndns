@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 
-from Output import info, debug, error
+import xml.etree.cElementTree as et
 
-def get_current_ip(verbosity=0):
+from urllib2 import urlopen
+from re import sub as re_sub
+
+from Output import message, info, debug, extra, error
+
+def get_external_ip(verbosity=0):
     v = verbosity
     url = "http://checkip.dyndns.org"
     info(v, "Retreiving current external ip from %s" % url)
 
     # Open URL
     try:
-        from urllib2 import urlopen
         html_result = urlopen(url)
     except Exception, e:
         error("Url(%s) - %s" % (url, e))
@@ -17,15 +21,14 @@ def get_current_ip(verbosity=0):
 
     # Read result
     ip_string = html_result.read().strip()
-    debug(v, "Full HTML Result: %s" % ip_string)
+    extra(v, "Full HTML Result: %s" % ip_string)
 
     # Parse out IP
     ip = None
     if ip_string is not None:
-        from re import sub as re_sub
         regex = '^.*Current IP Address: ([0-9.]*).*$'
         ip = re_sub(regex, r'\1', ip_string)
-        debug(v, "Retreived IP: %s" % ip)
+        extra(v, "Retreived IP: %s" % ip)
 
     return ip
 
@@ -44,7 +47,6 @@ class Record:
         key = ''
         if self.url != '':
             # Use regex to extract update_key
-            from re import sub as re_sub
             regex = r"^.*update.php\?([0-9A-Za-z=]*)$"
             key = re_sub(regex, r'\1', self.url)
 
@@ -63,6 +65,7 @@ class Record:
         args = (self.host, self.address, self.url, self.updateKey())
         return "-Record-\nHost: %s\nAddr: %s\nUrl: %s\nUpdate Key: %s\n" % args
 
+
 def get_records(api_key, verbosity=0):
     v = verbosity
     url = "https://freedns.afraid.org/api/?action=getdyndns&sha=%s&style=xml"
@@ -71,7 +74,6 @@ def get_records(api_key, verbosity=0):
 
     # Open URL
     try:
-        from urllib2 import urlopen
         html_result = urlopen(url)
     except Exception, e:
         error("url(%s) - %s" % (url, e))
@@ -79,7 +81,7 @@ def get_records(api_key, verbosity=0):
 
     # Read result
     raw_xml = html_result.read().strip()
-    debug(v, "Full XML Result: %s" % raw_xml)
+    extra(v, "Full XML Result: %s" % raw_xml)
 
     # Check for authentication error
     if raw_xml == 'ERROR: Could not authenticate.':
@@ -87,7 +89,6 @@ def get_records(api_key, verbosity=0):
         return None
 
     # Parse XML
-    import xml.etree.cElementTree as et
     try:
         xml = et.fromstring(raw_xml)
     except Exception, e:
@@ -99,7 +100,35 @@ def get_records(api_key, verbosity=0):
     records = [Record(z) for z in [
               {y.tag: y.text for y in x} for x in all_items]]
 
-    debug(v, "Retreived Records: %s" % records)
+    extra(v, "Retreived Records: %s" % records)
 
     # Return records if they exist, else return none
     return records if records != [] else None
+
+
+def update_record(record, ip, verbosity=0):
+    v = verbosity
+    url = "https://freedns.afraid.org/dynamic/update.php?%s&address=%s"
+    url = url % (record.updateKey(), ip)
+    info(v, "Updating Record %s" % url)
+
+    # Open URL
+    try:
+        html_result = urlopen(url)
+    except Exception, e:
+        error("url(%s) - %s" % (url, e))
+        return
+
+    # Read result
+    result_str = html_result.read().strip()
+    extra(v, "Full HTML Result: %s" % result_str)
+
+    if "Error" in result_str:
+        error(result_str)
+        return
+
+    # Success, print timestamp and success message
+    from datetime import datetime
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    message("Updated On: %s" % time)
+    message(result_str)
